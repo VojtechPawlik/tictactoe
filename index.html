@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tilt+Warp&display=swap" rel="stylesheet">
+
+    <!-- Styly pro vzhled stránky -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: rgb(255, 255, 255);
+            display: grid;
+            place-items: center;
+            font-family: 'Tilt Warp', cursive;
+        }
+
+        h1 {
+            margin: 50px 0 50px 0;
+            font-size: 5rem;
+            color: rgb(183, 32, 115);
+            -webkit-text-stroke: .5px black;
+        }
+
+        input {
+            margin-bottom: 20px;
+            padding: 5px;
+            font-size: 1.2rem;
+        }
+
+        button {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        img {
+            width: 30px;
+        }
+
+        #cont {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .btn {
+            font-size: 2rem;
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+            margin: 0;
+            background-color: rgb(206, 203, 203);
+            border-radius: 10px;
+        }
+
+        #find {
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
+            padding: 7px;
+            border-radius: 10px;
+            width: 250px;
+            background-color: rgb(0, 0, 0);
+        }
+
+        .btn:hover {
+            background-color: rgb(226, 228, 230);
+        }
+
+        button.enabled {
+            opacity: 1;
+        }
+
+        p {
+            font-size: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Hlavní obsah stránky -->
+    <h1>Tic-Tac-Toe</h1>
+
+    <!-- Kontejner pro jména hráčů -->
+    <div style="display: flex; width: 95vw; position: relative;">
+        <p id="userCont">You : <span id="user"></span></p>
+        <p style="position: absolute; right: 0;" id="oppNameCont">Opponent : <span id="oppName"></span></p>
+    </div>
+    <br>
+
+    <!-- Zobrazení, jako který symbol hraje hráč -->
+    <p id="valueCont">You are playing as <span id="value"></span></p>
+    <br>
+
+    <!-- Zobrazení, čí je právě tah -->
+    <p id="whosTurn">X's Turn</p>
+
+    <!-- Formulář pro zadání jména hráče -->
+    <div>
+        <p style="font-size: 1.2rem;" id="enterName">Enter your name : </p>
+        <input type="text" placeholder="Name" id="name" autocomplete="off">
+    </div>
+
+    <!-- Tlačítko pro hledání soupeře -->
+    <button id="find">Search for a player</button>
+    <img id="loading" src="loading.gif" alt="">
+
+    <!-- Hlavní hrací pole -->
+    <div id="bigcont" style="display: none;">
+        <div id="cont">
+
+            <!-- Devět tlačítek pro hru -->
+            <button id="btn1" class="btn"></button>
+            <button id="btn2" class="btn"></button>
+            <button id="btn3" class="btn"></button>
+            <button id="btn4" class="btn"></button>
+            <button id="btn5" class="btn"></button>
+            <button id="btn6" class="btn"></button>
+            <button id="btn7" class="btn"></button>
+            <button id="btn8" class="btn"></button>
+            <button id="btn9" class="btn"></button>
+        </div>
+    </div>
+
+</div>
+<p id="lastTurn"></p>
+</div>
+
+    <!-- Skripty pro interakci s Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Skript pro interaktivní části hry
+
+        // Skrývání nepotřebných prvků při načtení stránky
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("bigcont").style.display = "none";
+        document.getElementById("userCont").style.display = "none";
+        document.getElementById("oppNameCont").style.display = "none";
+        document.getElementById("valueCont").style.display = "none";
+        document.getElementById("whosTurn").style.display = "none";
+
+        // Inicializace Socket.IO pro komunikaci se serverem
+        const socket = io();
+
+        let name; // Proměnná pro uchování jména hráče
+
+        // Event listener pro tlačítko "Find"
+        document.getElementById('find').addEventListener("click", function () {
+            name = document.getElementById("name").value;
+            document.getElementById("user").innerText = name;
+
+            // Kontrola, zda bylo zadáno jméno
+            if (name == null || name == '') {
+                alert("Please enter a name");
+            } else {
+                // Odeslání události "find" na server s jménem hráče
+                socket.emit("find", { name: name });
+
+                // Zobrazení ikony načítání a zakázání tlačítka "Find"
+                document.getElementById("loading").style.display = "block";
+                document.getElementById("find").disabled = true;
+            }
+        });
+
+        // Socket event "find"
+        socket.on("find", (e) => {
+            // Získání pole všech hráčů
+            let allPlayersArray = e.allPlayers;
+
+            // Zobrazení potřebných prvků po nalezení hráče
+            if (name != '') {
+                document.getElementById("userCont").style.display = "block";
+                document.getElementById("oppNameCont").style.display = "block";
+                document.getElementById("valueCont").style.display = "block";
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("name").style.display = "none";
+                document.getElementById("find").style.display = "none";
+                document.getElementById("enterName").style.display = "none";
+                document.getElementById("bigcont").style.display = "block";
+                document.getElementById("whosTurn").style.display = "block";
+                document.getElementById("whosTurn").innerText = "X's Turn";
+            }
+
+            // Nastavení jména soupeře a symbolu hráče
+            let oppName;
+            let value;
+
+            const foundObject = allPlayersArray.find(obj => obj.p1.p1name == `${name}` || obj.p2.p2name == `${name}`);
+            foundObject.p1.p1name == `${name}` ? oppName = foundObject.p2.p2name : oppName = foundObject.p1.p1name;
+            foundObject.p1.p1name == `${name}` ? value = foundObject.p1.p1value : value = foundObject.p2.p2value;
+
+            document.getElementById("oppName").innerText = oppName;
+            document.getElementById("value").innerText = value;
+        });
+
+        // Event listenery pro tlačítka hry
+        document.querySelectorAll(".btn").forEach(e => {
+            e.addEventListener("click", function () {
+                let value = document.getElementById("value").innerText;
+                e.innerText = value;
+
+                // Odeslání události "playing" na server s informacemi o tahu
+                socket.emit("playing", { value: value, id: e.id, name: name });
+            });
+        });
+
+        // Socket event "playing"
+        socket.on("playing", (e) => {
+            // Získání objektu aktuálního zápasu
+            const foundObject = e.allPlayers.find(obj => obj.p1.p1name == `${name}` || obj.p2.p2name == `${name}`);
+
+            // Získání informací o tazích obou hráčů
+            let p1id = foundObject.p1.p1move;
+            let p2id = foundObject.p2.p2move;
+
+            // Zobrazení, čí je právě tah
+            if ((foundObject.sum) % 2 == 0) {
+                document.getElementById("whosTurn").innerText = "O's Turn";
+            } else {
+                document.getElementById("whosTurn").innerText = "X's Turn";
+            }
+
+            // Aktualizace UI podle tahu hráčů
+            if (p1id != '') {
+                document.getElementById(`${p1id}`).innerText = "X";
+                document.getElementById(`${p1id}`).disabled = true;
+                document.getElementById(`${p1id}`).style.color = "black";
+            }
+            if (p2id != '') {
+                document.getElementById(`${p2id}`).innerText = "O";
+                document.getElementById(`${p2id}`).disabled = true;
+                document.getElementById(`${p2id}`).style.color = "black";
+            }
+
+            // Kontrola stavu hry
+            check(name, foundObject.sum);
+        });
+
+        // Funkce pro kontrolu stavu hry
+        function check(name, sum) {
+            // Získání hodnot tlačítek
+            let b1 = document.getElementById("btn1").innerText == '' ? "a" : document.getElementById("btn1").innerText;
+            let b2 = document.getElementById("btn2").innerText == '' ? "b" : document.getElementById("btn2").innerText;
+            let b3 = document.getElementById("btn3").innerText == '' ? "c" : document.getElementById("btn3").innerText;
+            let b4 = document.getElementById("btn4").innerText == '' ? "d" : document.getElementById("btn4").innerText;
+            let b5 = document.getElementById("btn5").innerText == '' ? "e" : document.getElementById("btn5").innerText;
+            let b6 = document.getElementById("btn6").innerText == '' ? "f" : document.getElementById("btn6").innerText;
+            let b7 = document.getElementById("btn7").innerText == '' ? "g" : document.getElementById("btn7").innerText;
+            let b8 = document.getElementById("btn8").innerText == '' ? "h" : document.getElementById("btn8").innerText;
+            let b9 = document.getElementById("btn9").innerText == '' ? "i" : document.getElementById("btn9").innerText;
+
+            // Kontrola výherních kombinací
+            if ((b1 == b2 && b2 == b3) || (b4 == b5 && b5 == b6) || (b7 == b8 && b8 == b9) ||
+                (b1 == b4 && b4 == b7) || (b2 == b5 && b5 == b8) || (b3 == b6 && b6 == b9) ||
+                (b1 == b5 && b5 == b9) || (b3 == b5 && b5 == b7)) {
+
+                // Odeslání události "gameOver" na server s jménem vítězného hráče
+                socket.emit("gameOver", { name: name });
+
+                // Zobrazení vítěze nebo remízy a následné obnovení stránky
+                setTimeout(() => {
+                    sum % 2 == 0 ? alert("X WON !!") : alert("O WON !!");
+
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+
+                }, 100);
+            } else if (sum == 10) {
+                // Odeslání události "gameOver" na server při remíze
+                socket.emit("gameOver", { name: name });
+
+                // Zobrazení zprávy o remíze a obnovení stránky
+                setTimeout(() => {
+                    alert("DRAW!!");
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                }, 100);
+            }
+        }
+    </script>
+
+</body>
+
+</html>
